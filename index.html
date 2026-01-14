@@ -1,0 +1,559 @@
+<html>
+<head>
+  <base href="." />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* ===== Background page (original) ===== */
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #container {
+      width: 100vw;
+      height: 100vh;
+      width: -webkit-fill-available;
+      height: -webkit-fill-available;
+      width: -moz-available;
+      height: -moz-available;
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, rgba(255, 50, 0, 0.3) 0%, transparent 60%),
+        radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.7) 100%),
+        linear-gradient(to bottom, rgba(50, 0, 0, 0.3) 0%, transparent 100%);
+      animation: colorCycle 15s infinite;
+      z-index: 1;
+    }
+
+    @keyframes colorCycle {
+      0%   { filter: hue-rotate(0deg) brightness(1); }
+      25%  { filter: hue-rotate(90deg) brightness(1.1); }
+      50%  { filter: hue-rotate(180deg) brightness(1); }
+      75%  { filter: hue-rotate(270deg) brightness(1.1); }
+      100% { filter: hue-rotate(360deg) brightness(1); }
+    }
+
+    /* ===== Your bio overlay (on top) ===== */
+    .bioOverlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 2px;
+      z-index: 10;          /* above canvas + overlay */
+      pointer-events: none; /* important: only card will receive clicks */
+    }
+
+    .bioOverlay * { box-sizing: border-box; }
+
+    .bioWrap { width: min(760px, 100%); }
+
+    .bioCard {
+      pointer-events: auto; /* clickable/selectable */
+      position: relative;
+      background: linear-gradient(180deg, rgba(18,24,38,.90), rgba(18,24,38,.65));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.55);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    /* glow base */
+    .bioCard::before{
+      content:"";
+      position:absolute;
+      inset:-120px;
+      background:
+        radial-gradient(420px 220px at 15% 20%, rgba(124,131,255,.22), transparent 70%),
+        radial-gradient(420px 220px at 85% 30%, rgba(16,185,129,.18), transparent 70%);
+      filter: blur(28px);
+      opacity: .55;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* aurora motion */
+    .bioCard::after{
+      content:"";
+      position:absolute;
+      inset:-160px;
+      background:
+        radial-gradient(520px 340px at 20% 20%, rgba(124,131,255,.22), transparent 70%),
+        radial-gradient(520px 340px at 80% 30%, rgba(16,185,129,.16), transparent 70%),
+        radial-gradient(520px 340px at 65% 85%, rgba(236,72,153,.10), transparent 72%);
+      filter: blur(34px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+      z-index: 0;
+      animation: auroraFloat 16s ease-in-out infinite;
+    }
+
+    @keyframes auroraFloat{
+      0%   { transform: translate3d(-2%, -1%, 0) scale(1.02); }
+      40%  { transform: translate3d( 2%,  1%, 0) scale(1.03); }
+      70%  { transform: translate3d( 1%,  2%, 0) scale(1.02); }
+      100% { transform: translate3d(-2%, -1%, 0) scale(1.02); }
+    }
+
+    .bioContent{
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 28px;
+      padding: 32px;
+      align-items: center;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: #e5e7eb;
+    }
+
+    @media (max-width: 860px){
+      .bioContent{ grid-template-columns: 1fr; }
+    }
+
+    .bioMedia{
+      position: relative;
+      background: rgba(18,24,38,.75);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 22px;
+      padding: 14px;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .bioMedia img{
+      width:100%;
+      display:block;
+      border-radius: 12px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.6);
+      transition: transform .45s ease, filter .45s ease;
+      will-change: transform;
+    }
+
+
+
+    .bioMedia::before{
+      content:"";
+      position:absolute;
+      inset:14px;
+      border-radius: 12px;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+      background-size: 180px 180px;
+      mix-blend-mode: overlay;
+      opacity: 0;
+      animation: glitterDrift 6.5s linear infinite;
+      transition: opacity .25s ease;
+    }
+
+    /* show holo on hover */
+    .bioCard:hover .bioMedia::after,
+    .bioCard:hover .bioMedia::before{
+      opacity: .9;
+    }
+
+    .bioCard:hover .bioMedia img{
+      transform: scale(1.01) translateY(-0.1px);
+      filter: saturate(1.05) contrast(1.05);
+    }
+
+    @keyframes holoSweep{
+      0%   { transform: translateX(-55%); }
+      50%  { transform: translateX(35%); }
+      100% { transform: translateX(-55%); }
+    }
+
+    @keyframes glitterDrift{
+      0%   { transform: translate3d(-2%, -1%, 0); }
+      100% { transform: translate3d( 2%,  1%, 0); }
+    }
+
+    .bioText{
+      display:flex;
+      flex-direction:column;
+      gap: 18px;
+    }
+
+    .bioTag{
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #7c83ff;
+    }
+
+    .bioText h1{
+      margin: 0;
+      font-size: clamp(26px, 3.2vw, 40px);
+      line-height: 1.1;
+      letter-spacing: -.03em;
+    }
+
+    .bioQuote{
+      position: relative;
+      padding-left: 18px;
+      color: rgba(229,231,235,.75);
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 60ch;
+    }
+
+    .bioQuote::before{
+      content:"“";
+      position:absolute;
+      left:0;
+      top:-6px;
+      font-size: 40px;
+      color: #7c83ff;
+      opacity: .45;
+      line-height: 1;
+    }
+
+    .bioDivider{
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+      margin: 6px 0;
+    }
+
+    /* reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .bioCard::after, .bioMedia::after, .bioMedia::before { animation: none !important; }
+      .bioMedia img{ transition:none !important; }
+    }
+
+    /* Fallback si mix-blend-mode rompe en algún browser viejo */
+    @supports not (mix-blend-mode: screen){
+      .bioCard::after, .bioMedia::after, .bioMedia::before{
+        mix-blend-mode: normal;
+        opacity: .25;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="container"></div>
+  <div class="overlay"></div>
+
+  <!-- ===== Bio overlay ON TOP ===== -->
+  <div class="bioOverlay">
+    <div class="bioWrap">
+      <section class="bioCard">
+        <div class="bioContent">
+          <figure class="bioMedia">
+            <img src="https://xatimg.com/image/qp57pg9jAP4s.png" alt="Imagen bio" loading="lazy" />
+          </figure>
+
+          <div class="bioText">
+            <span class="bioTag">hello, i'm J</span>
+            <h3>Living the present.</h3>
+            <p class="bioQuote">Atiendo boludos.</p>
+            <div class="bioDivider"></div>
+            <h5>🇦🇷</h5>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+      alpha: true
+    });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    const sunMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+        pulseIntensity: { value: 0.3 },
+        turbulence: { value: 0.8 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        uniform float time;
+        uniform float turbulence;
+
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = position;
+
+          vec3 pos = position;
+          float displacement = sin(time * 2.0 + position.x * 5.0) * 0.05;
+          displacement += cos(time * 1.5 + position.y * 4.0) * 0.04;
+          displacement += sin(time * 1.8 + position.z * 3.0) * 0.06;
+
+          float wave = sin(position.y * 8.0 + time * 3.0) * turbulence * 0.03;
+          wave += cos(position.x * 6.0 + time * 2.5) * turbulence * 0.02;
+
+          pos += normal * (displacement + wave);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec2 resolution;
+        uniform float pulseIntensity;
+        uniform float turbulence;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+
+        float noise(vec3 p) {
+          vec3 i = floor(p);
+          vec3 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float n = i.x + i.y * 157.0 + 113.0 * i.z;
+          return mix(
+            mix(
+              mix(fract(sin(n + 0.0) * 43758.5453),
+                  fract(sin(n + 1.0) * 43758.5453), f.x),
+              mix(fract(sin(n + 157.0) * 43758.5453),
+                  fract(sin(n + 158.0) * 43758.5453), f.x), f.y),
+            mix(
+              mix(fract(sin(n + 113.0) * 43758.5453),
+                  fract(sin(n + 114.0) * 43758.5453), f.x),
+              mix(fract(sin(n + 270.0) * 43758.5453),
+                  fract(sin(n + 271.0) * 43758.5453), f.x), f.y), f.z);
+        }
+
+        float fbm(vec3 p) {
+          float value = 0.0;
+          float amplitude = 0.5;
+          float frequency = 1.0;
+          for (int i = 0; i < 8; i++) {
+            value += amplitude * noise(p * frequency);
+            p += vec3(1.7, 2.3, 1.1);
+            frequency *= 2.0;
+            amplitude *= 0.5;
+          }
+          return value;
+        }
+
+        float fire(vec3 p) {
+          float d = length(p.xy - vec2(0.0));
+          float n = fbm(p * 3.0 + vec3(0.0, time * 1.5, 0.0));
+          float flames = 1.0 - d * (1.0 + n * 0.5);
+          flames = smoothstep(0.1, 0.5, flames);
+          return flames;
+        }
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          float t = time * 1.5;
+
+          float pulse = 1.0 + sin(t * 2.0) * pulseIntensity;
+          float slowPulse = 1.0 + sin(t * 0.5) * (pulseIntensity * 0.5);
+
+          vec3 p1 = vec3(vUv * 15.0, t);
+          vec3 p2 = vec3(vUv * 8.0 - vec2(t * 0.2), t * 1.5);
+          vec3 p3 = vec3(vUv * 4.0 + vec2(t * 0.1), t * 0.7);
+
+          float noise1 = fbm(p1) * pulse;
+          float noise2 = fbm(p2) * slowPulse;
+          float noise3 = fbm(p3);
+
+          float fresnel = pow(1.0 - abs(dot(normal, vec3(0.0, 0.0, 1.0))), 3.0);
+          fresnel *= 1.0 + sin(t * 4.0) * 0.4;
+
+          vec3 firePos = vPosition * 0.5 + vec3(t * 0.2);
+          float fireIntensity = fire(firePos);
+
+          vec3 baseColor = mix(
+            vec3(1.0, 0.2, 0.0),
+            vec3(1.0, 0.9, 0.2),
+            noise1 * noise2
+          );
+
+          float corona = pow(1.0 - length(vUv - 0.5) * 1.8, 4.0);
+
+          vec3 finalColor = baseColor * (1.0 + fireIntensity * 0.5);
+          finalColor *= pulse * slowPulse;
+          finalColor += vec3(1.0, 0.6, 0.2) * fresnel * pulse * 1.5;
+          finalColor += vec3(1.0, 0.4, 0.0) * corona * pulse;
+          finalColor += vec3(1.0, 0.3, 0.1) * pow(noise3, 2.0) * turbulence;
+
+          finalColor = pow(finalColor, vec3(0.8));
+          finalColor *= 1.2;
+
+          gl_FragColor = vec4(finalColor, 1.0);
+        }
+      `,
+      transparent: true
+    });
+
+    const sunGeometry = new THREE.SphereGeometry(2, 128, 128);
+    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    scene.add(sun);
+
+    const particleCount = 5000;
+    const particles = new THREE.BufferGeometry();
+    const positions = [];
+    const colors = [];
+    const sizes = [];
+    const lifetimes = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      positions.push(
+        (Math.random() * 20 - 10) * Math.cos(i),
+        (Math.random() * 20 - 10) * Math.sin(i),
+        Math.random() * 20 - 10
+      );
+      const cycleOffset = i / particleCount;
+      colors.push(
+        Math.sin(cycleOffset * Math.PI) * 0.7 + 0.3,
+        Math.sin(cycleOffset * Math.PI + Math.PI / 3) * 0.7 + 0.3,
+        Math.sin(cycleOffset * Math.PI + 2 * Math.PI / 3) * 0.7 + 0.3,
+        Math.random() * 0.7 + 0.3
+      );
+      sizes.push(Math.random() * 4 + 1);
+      lifetimes.push(Math.random() * 2 * Math.PI);
+    }
+
+    particles.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    particles.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+    particles.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+    particles.setAttribute('lifetime', new THREE.Float32BufferAttribute(lifetimes, 1));
+
+    const particleMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        globalIntensity: { value: 1.0 }
+      },
+      vertexShader: `
+        attribute float size;
+        attribute vec4 color;
+        attribute float lifetime;
+        varying vec4 vColor;
+        uniform float time;
+        uniform float globalIntensity;
+
+        void main() {
+          float cycleTime = time * 0.5;
+          vColor = vec4(
+            color.r * abs(sin(cycleTime + lifetime)),
+            color.g * abs(sin(cycleTime + lifetime + 2.094)),
+            color.b * abs(sin(cycleTime + lifetime + 4.189)),
+            color.a
+          );
+
+          vec3 pos = position;
+          float uniqueTime = time + lifetime;
+
+          pos.y += sin(uniqueTime * 2.0 + position.x) * 0.5;
+          pos.x += cos(uniqueTime * 1.5 + position.z) * 0.3;
+          pos.z += sin(uniqueTime * 1.0 + position.y) * 0.4;
+
+          float spiral = sin(uniqueTime * 0.5) * 0.3;
+          pos.x += cos(uniqueTime) * spiral;
+          pos.z += sin(uniqueTime) * spiral;
+
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = size * (350.0 / length(mvPosition.xyz)) * globalIntensity;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec4 vColor;
+        void main() {
+          float d = length(gl_PointCoord - vec2(0.5));
+          if(d > 0.5) discard;
+          float glow = 1.0 - d * 2.0;
+          glow = pow(glow, 1.5);
+          gl_FragColor = vColor * glow;
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const particleSystem = new THREE.Points(particles, particleMaterial);
+    scene.add(particleSystem);
+
+    const ambientLight = new THREE.AmbientLight(0x332211);
+    scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0xff5500, 2, 100);
+    pointLight.position.set(0, 0, 0);
+    scene.add(pointLight);
+
+    const secondaryLight = new THREE.PointLight(0xff8800, 1, 50);
+    secondaryLight.position.set(5, 5, 5);
+    scene.add(secondaryLight);
+
+    camera.position.z = 15;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = Date.now() * 0.002;
+
+      sunMaterial.uniforms.time.value += 0.015;
+      sunMaterial.uniforms.pulseIntensity.value = 0.4 + Math.sin(time * 0.3) * 0.2;
+      sunMaterial.uniforms.turbulence.value = 0.8 + Math.sin(time * 0.5) * 0.3;
+
+      const scalePulse = 1 + Math.sin(time * 2.2) * 0.08 + Math.sin(time * 3.7) * 0.04;
+      sun.scale.set(scalePulse, scalePulse, scalePulse);
+      sun.rotation.y += 0.008 * (1 + Math.sin(time * 0.5) * 0.2);
+      sun.rotation.x += 0.005 * (1 + Math.cos(time * 0.7) * 0.2);
+      sun.rotation.z += 0.003 * (1 + Math.sin(time * 0.3) * 0.2);
+
+      particleMaterial.uniforms.time.value += 0.015;
+
+      const hue = (time * 0.15) % 1;
+      pointLight.color.setHSL(hue, 0.9, 0.6);
+      secondaryLight.color.setHSL((hue + 0.5) % 1, 0.9, 0.6);
+      pointLight.intensity = 2.5 + Math.sin(time) * 0.7;
+      secondaryLight.intensity = 1.8 + Math.cos(time * 1.5) * 0.4;
+
+      particleMaterial.uniforms.globalIntensity.value = 1.2 + Math.sin(time * 0.5) * 0.3;
+
+      particleSystem.rotation.y += 0.003 * Math.sin(time * 0.15);
+      particleSystem.rotation.x += 0.002 * Math.cos(time * 0.25);
+      particleSystem.rotation.z += 0.001 * Math.sin(time * 0.35);
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      sunMaterial.uniforms.resolution.value.set(width, height);
+    }, false);
+
+    animate();
+  </script>
+</body>
+</html>
